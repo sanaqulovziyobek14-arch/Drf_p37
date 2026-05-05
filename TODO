@@ -1,0 +1,267 @@
+managepython manage.py dumpdata --indent 4 apps.Post > post.json
+python manage.py loaddata posts
+
+
+
+
+🟢 EASY (Starter Level)
+
+👉 Maqsad: DRF asoslarini to‘g‘ri ishlatish
+
+📌 Task: Simple Blog API
+1. Model
+Post:
+title
+content
+author (FK → User)
+created_at
+is_published
+2. Serializer
+PostSerializer
+author → read_only
+created_at → formatted (%Y-%m-%d)
+3. View
+PostViewSet
+CRUD ishlaydi
+4. Auth
+JWT (djangorestframework-simplejwt)
+login
+refresh
+5. Permission
+Default: IsAuthenticated
+Faqat author:
+edit
+delete
+6. Filter & Search
+Filter:
+is_published
+Search:
+title
+content
+7. Admin
+list_display:
+title
+author
+is_published
+search:
+title
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+MIDDLE (Real API Level)
+
+👉 Maqsad: relation + custom logic
+
+📌 Task: Multi-user Blog
+1. Model (expand)
+
+Qo‘shing:
+
+Category
+Tag (M2M)
+Like
+
+👉 Constraint:
+
+1 user → 1 like per post
+2. Serializer (advanced)
+
+PostSerializer:
+
+Qo‘shing:
+
+likes_count
+is_liked
+tags:
+slug orqali
+create/update:
+taglarni avtomatik create qilsin
+3. Permission
+
+Custom yozing:
+
+ADMIN → hamma narsa
+AUTHOR → o‘z posti
+READER → faqat read
+4. ViewSet
+
+Qo‘shing:
+
+/like/
+/unlike/
+/my-posts/
+5. Filter
+
+Qo‘shing:
+
+category
+tags (multi)
+created_at range
+6. Search + Ordering
+search:
+title
+content
+ordering:
+created_at
+views_count
+7. Admin
+Inline Like
+views_count readonly
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+🔴 HARD (Production Level)
+
+
+👉 Maqsad: scalable, optimized API
+
+📌 Task: Advanced Blog System
+1. Performance
+select_related
+prefetch_related
+annotate(likes_count)
+2. Advanced ViewSet
+
+Qo‘shing:
+
+/popular/ → views_count bo‘yicha
+retrieve → views_count +1
+3. Advanced Filter
+
+Qo‘shing:
+
+views_count > X
+likes_count filter
+tags multi filter
+4. JWT Custom
+
+Token ichiga qo‘shing:
+
+role
+5. Pagination
+limit/offset
+6. Throttling
+anon: slow
+user: faster
+7. Serializer Optimization
+nested vs slug
+dynamic fields
+8. Admin Pro Level
+filter:
+category
+is_published
+search:
+title
+content
+display:
+views_count
+likes_count
+9. Bonus (Senior touch)
+caching (Redis)
+signals:
+post create → notify
+soft delete
+
+
+
+
+
+
+
+
+
+
+
+
+# serializers.py
+
+from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from apps.models import Post, Tag, Like
+
+
+class TagSerializer(ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ('id', 'slug')
+
+
+class PostSerializer(ModelSerializer):
+    likes_count = SerializerMethodField()
+    is_liked = SerializerMethodField()
+
+    tags = TagSerializer(many=True)
+
+    class Meta:
+        model = Post
+        fields = (
+            'id',
+            'title',
+            'content',
+            'category',
+            'tags',
+            'views_count',
+            'created_at',
+            'likes_count',
+            'is_liked'
+        )
+
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+
+        if not request or request.user.is_anonymous:
+            return False
+
+        return Like.objects.filter(
+            user=request.user,
+            post=obj
+        ).exists()
+
+    def create(self, validated_data):
+        tags_data = validated_data.pop('tags', [])
+
+        post = Post.objects.create(**validated_data)
+
+        for tag_data in tags_data:
+            tag, _ = Tag.objects.get_or_create(
+                slug=tag_data['slug']
+            )
+            post.tags.add(tag)
+
+        return post
+
+    def update(self, instance, validated_data):
+        tags_data = validated_data.pop('tags', [])
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+
+        if tags_data:
+            instance.tags.clear()
+
+            for tag_data in tags_data:
+                tag, _ = Tag.objects.get_or_create(
+                    slug=tag_data['slug']
+                )
+                instance.tags.add(tag)
+
+        return instance
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+{
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3Nzk5MjMyMywiaWF0IjoxNzc3NTYwMzIzLCJqdGkiOiJlMzg0YjIxMWJkM2E0ZmY0OTBiZDc5OTkyM2MzNjg0MSIsInVzZXJfaWQiOiIxIiwicm9sZSI6ImFkbWluIn0.Jvx8g_doqJRidtXuP65bNEAZyMxx-1U5FDSiTR59NcE",
+  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc3OTkyMzIzLCJpYXQiOjE3Nzc1NjAzMjMsImp0aSI6IjMwNmNlM2IwZTk5ODQ2Yzk4ZDVlNmNkYTI3YmUwZmM5IiwidXNlcl9pZCI6IjEiLCJyb2xlIjoiYWRtaW4ifQ.jgT8aBf1GymhBrq9wUg87v9twIehMxMwantP8B8Mc1g"
+}
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+{
+  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc3OTkyNDA5LCJpYXQiOjE3Nzc1NjA0MDksImp0aSI6IjI5ZDY0ZTk4MjU2NDRiOGY5NDRlYWQxMDUxYzc2NjIzIiwidXNlcl9pZCI6IjEiLCJyb2xlIjoiYWRtaW4ifQ.Vy42tXcUZOXgbsOK4mcbVOQCEqRIFlH4T7-vu5abfaA"
+}
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
