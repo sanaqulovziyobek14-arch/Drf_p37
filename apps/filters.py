@@ -1,7 +1,7 @@
-from django.db.models import Count
-from django_filters import FilterSet, CharFilter, DateFromToRangeFilter
+from django.db.models import Count, Q
+from django_filters import FilterSet, CharFilter, DateFromToRangeFilter, NumberFilter
 
-from apps.models import Post
+from apps.models import Post, Tag, Category
 
 
 class PostFilter(FilterSet):
@@ -13,6 +13,7 @@ class PostFilter(FilterSet):
     tags = CharFilter(method='filter_tags')
 
     created_at = DateFromToRangeFilter()
+
     class Meta:
         model = Post
         fields = 'category', 'tags'
@@ -23,17 +24,41 @@ class PostFilter(FilterSet):
             tags__slug__in=tags
         ).distinct()
 
-    #
-    # def filter_comment_count(self, queryset, key, value):
-    #     return queryset.annotate(
-    #         comment_count=Count('comments')
-    #     ).filter(comment_count__gte=value)
+
+class TagFilter(FilterSet):
+    tag_count = NumberFilter(field_name='tag_count')
+    created_at = DateFromToRangeFilter()
+
+    class Meta:
+        model = Tag
+        fields = ('name', 'slug')
+
+
+    def filter_tag_count(self, queryset, key, value):
+        return queryset.annotate(tag_count=Count('tag_id')).filter(tag_count__gte=value)
+
+
+class CategoryFilter(FilterSet):
+    category_count = NumberFilter(field_name='filter_category_count')
+    tags = CharFilter(method='filter_tags')
+    created_at = DateFromToRangeFilter()
+
+    class Meta:
+        model = Category
+        fields = ('id',)
+
+    def filter_category_count(self, queryset, key, value):
+        return queryset.annotate(category_count=Count('category_id')).filter(category_count__gte=value)
 
 
 
 
-
-
+ #
+# def filter_comment_count(self, queryset, key, value):
+#     return queryset.annotate(
+#         comment_count=Count('comments')
+#     ).filter(comment_count__gte=value)
+#
 # from django.db.models import Count
 # from django_filters import FilterSet, NumberFilter
 # from apps.models import Post, User
@@ -82,5 +107,3 @@ class PostFilter(FilterSet):
 #         fields = ()
 #     def filter_user_count(self, queryset, key, value):
 #         return queryset.annotate(user_count=Count('user_id')).filter(user_count__gte=value)
-
-

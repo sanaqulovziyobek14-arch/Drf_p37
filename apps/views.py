@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.generics import ListCreateAPIView, CreateAPIView
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
@@ -19,10 +19,10 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from apps.filters import PostFilter
 from apps.models import Post, User
-from apps.models.posts import Like, Product, Favorite
+from apps.models.posts import Like, Product, Favorite, Category
 from apps.permissions import IsAuthorOrReadOnly
-from apps.serializer import CustomTokenObtainPairSerializer, PostModelSerializer,  ProductSerializer, \
-    UserModelSerializer
+from apps.serializer import CustomTokenObtainPairSerializer, PostModelSerializer, ProductSerializer, \
+    UserModelSerializer, UserRegisterSerializer, CategorySerializer
 from root import settings
 
 
@@ -31,7 +31,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 
 @extend_schema(tags=['Post'])
-class PostModelViewSet(ModelViewSet):
+class PostViewSet(ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostModelSerializer
     permission_classes = [IsAuthorOrReadOnly]
@@ -93,10 +93,18 @@ class UserCreateAPIView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserModelSerializer
 
+class UserRegisterAPIView(CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserRegisterSerializer
+    permission_classes = [AllowAny]
+
+
 
 class PostViewSet(ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostModelSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
 
 
 # -------------------------------------------------------------------------------------------------------------------------
@@ -154,6 +162,10 @@ class UserCreateApiView(CreateAPIView):
     permission_classes = []
 
 
+class CategoryCreateApiView(CreateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [AllowAny]
 
 
 

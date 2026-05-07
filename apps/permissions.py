@@ -16,3 +16,12 @@ class IsAuthorOrReadOnly(BasePermission):
         if request.method in SAFE_METHODS:
             return True
         return  obj.author == request.user
+
+class IsAuthorOrAdminOrReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        if request.user.is_staff or request.user.is_superuser:
+            return True
+        if request.method in SAFE_METHODS:
+            return True
+        return request.user.is_authenticated
+

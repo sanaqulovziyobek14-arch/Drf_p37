@@ -7,7 +7,7 @@ from django_ckeditor_5.fields import CKEditor5Field
 
 
 class Category(Model):
-    name = CharField(max_length=255)
+    name = CharField(max_length=255,unique=True)
 
     def __str__(self):
         return self.name
@@ -34,9 +34,9 @@ class Favorite(Model):
 
 
 class Tag(Model):
-    name = CharField(max_length=255)
+    name = CharField(max_length=255,unique=True)
     slug = SlugField(max_length=255,unique=True)
-    posts = ManyToManyField('apps.Post', blank=True, related_name='tags')
+
 
 class Like(Model):
     user = ForeignKey('apps.User', CASCADE, related_name='likes')
@@ -55,6 +55,10 @@ class Post(Model):
     is_published = BooleanField(db_default=True)
     views_count = PositiveIntegerField(db_default=0)
     created_at = DateTimeField(auto_now=True)
+    tags = ManyToManyField('apps.Tag', blank=True, related_name='posts')
+
+class Constraint(Model):
+    name = UniqueConstraint(fields=['user', 'post'], name='unique_user_post')
 
 
 
